@@ -1,0 +1,74 @@
+{
+  "_note": "Demo fixtures only. No real customer data. Phone numbers are reserved-looking test values and the bookings are invented. Replace this module with the client's real APIs for a pilot.",
+  "serviceable_pincodes": {
+    "110092": "Delhi - Preet Vihar",
+    "110091": "Delhi - Mayur Vihar",
+    "110019": "Delhi - Kalkaji",
+    "201301": "Noida - Sector 1",
+    "201014": "Ghaziabad - Indirapuram",
+    "122001": "Gurugram - Sector 44",
+    "122018": "Gurugram - Sector 56",
+    "462024": "Bhopal - Saket Nagar",
+    "462001": "Bhopal - TT Nagar",
+    "700019": "Kolkata - Ballygunge",
+    "600041": "Chennai - Thiruvanmiyur",
+    "500081": "Hyderabad - Gachibowli",
+    "411045": "Pune - Baner"
+  },
+  "collection_slots": [
+    "06:00 - 07:00",
+    "07:00 - 08:00",
+    "08:00 - 09:00",
+    "09:00 - 10:00",
+    "10:00 - 11:00",
+    "17:00 - 18:00"
+  ],
+  "bookings": [
+    {
+      "booking_id": "HW2609141",
+      "phone": "9800000001",
+      "customer_name": "Demo Customer A",
+      "package": "Full Body Wellness",
+      "pincode": "110092",
+      "collection_date": "2026-09-09",
+      "collection_slot": "07:00 - 08:00",
+      "status": "confirmed",
+      "amount": 799,
+      "payment": "pay at collection",
+      "phlebotomist": "assigned",
+      "report_status": "pending",
+      "report_eta": "2026-09-10 by 10 PM"
+    },
+    {
+      "booking_id": "HW2609088",
+      "phone": "9800000002",
+      "customer_name": "Demo Customer B",
+      "package": "Swasth Bharata - Thyroid",
+      "pincode": "122001",
+      "collection_date": "2026-09-06",
+      "collection_slot": "08:00 - 09:00",
+      "status": "sample collected",
+      "amount": 999,
+      "payment": "paid online",
+      "phlebotomist": "completed",
+      "report_status": "ready",
+      "report_eta": "delivered 2026-09-07",
+      "report_channels": ["SMS", "Email", "WhatsApp"]
+    },
+    {
+      "booking_id": "HW2609102",
+      "phone": "9800000003",
+      "customer_name": "Demo Customer C",
+      "package": "Young India: Full Body Checkup",
+      "pincode": "700019",
+      "collection_date": "2026-09-08",
+      "collection_slot": "06:00 - 07:00",
+      "status": "in progress",
+      "amount": 599,
+      "payment": "pay at collection",
+      "phlebotomist": "en route",
+      "report_status": "processing",
+      "report_eta": "2026-09-09 by 10 PM"
+    }
+  ]
+}

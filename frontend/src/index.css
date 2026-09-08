@@ -1,0 +1,240 @@
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef2f6;
+  --border: #dde3ea;
+  --text: #16212e;
+  --muted: #64748b;
+  --brand: #0b6b4f;
+  --brand-soft: #e7f3ee;
+  --accent: #1d4ed8;
+  --warn-bg: #fff4e5;
+  --warn-border: #f0c48a;
+  --warn-text: #7a4a09;
+  --radius: 14px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1620;
+    --surface: #172230;
+    --surface-2: #1e2b3b;
+    --border: #2a3a4d;
+    --text: #e6edf5;
+    --muted: #93a4b8;
+    --brand: #3ec99a;
+    --brand-soft: #14352b;
+    --accent: #7aa2ff;
+    --warn-bg: #3a2c14;
+    --warn-border: #7a5a22;
+    --warn-text: #f0c48a;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Tamil",
+    "Noto Sans Telugu", sans-serif;
+}
+
+.app {
+  height: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+/* ── header ─────────────────────────────────────────────── */
+.header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--brand); color: #fff;
+  display: grid; place-items: center; font-weight: 700;
+  flex: none;
+}
+
+.brand-name { font-weight: 650; }
+.brand-sub { color: var(--muted); font-size: 12.5px; }
+
+.status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--muted);
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.ok { background: var(--brand); }
+.dot.busy { background: #e0a83a; animation: pulse 1s infinite; }
+.dot.err { background: #d3453f; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+select, .btn {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { border-color: var(--brand); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.mic.on { background: #d3453f; border-color: #d3453f; color: #fff; }
+
+/* ── banner ─────────────────────────────────────────────── */
+.banner {
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  padding: 8px 16px;
+  font-size: 12.5px;
+}
+
+/* ── transcript ─────────────────────────────────────────── */
+.transcript {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row { display: flex; }
+.row.user { justify-content: flex-end; }
+
+.bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.row.agent .bubble {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.row.user .bubble {
+  background: var(--brand);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.bubble.interim { opacity: .6; font-style: italic; }
+/* Specificity has to beat `.row.agent .bubble`, which sets the neutral
+   background — otherwise the safety styling silently loses. */
+.row .bubble.guardrail {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+}
+.row .bubble.error {
+  background: #fdecea; border: 1px solid #f3b8b4; color: #8a2019;
+}
+
+.meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 5px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  border: 1px solid transparent;
+}
+.tag.mock { background: var(--warn-bg); color: var(--warn-text); }
+
+.speak {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 12px; padding: 0;
+}
+.speak:hover { color: var(--brand); }
+
+.typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+.typing i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted); animation: bounce 1.2s infinite;
+}
+.typing i:nth-child(2) { animation-delay: .15s; }
+.typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%,60%,100% { opacity:.3 } 30% { opacity:1 } }
+
+/* ── suggestions ────────────────────────────────────────── */
+.suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 10px; }
+.chip {
+  font: inherit; font-size: 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.chip:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ── composer ───────────────────────────────────────────── */
+.composer {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.composer textarea {
+  flex: 1;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  resize: none;
+  max-height: 130px;
+}
+.composer textarea:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+
+.footnote {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 0 16px 10px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
