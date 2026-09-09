@@ -183,17 +183,30 @@ is the natural fit here, since the model, speech and embeddings are all Azure.
 
 ### Frontend on Vercel
 
-`vercel.json` at the repo root builds `frontend/` and serves `frontend/dist`, so
-importing the repo works without setting a Root Directory.
+**Set Root Directory to `frontend`.** This is the whole trick. Left at `./`,
+Vercel's importer scans the repo, finds `backend/requirements.txt`, applies the
+**FastAPI** preset and tries to deploy two web services — `frontend` at `/` and
+`backend` at `/api`. The resulting settings contradict each other (Build
+Command `None`, Output Directory `N/A`, Install Command `pip install`) and the
+**Deploy button stays disabled** because there is nothing coherent to build.
 
-One required setting: add an environment variable **`VITE_API_BASE_URL`** =
-`https://<your-backend-host>/api` and redeploy. Vite inlines env vars at build
+In the import screen: click **Edit** next to Root Directory, choose `frontend`,
+and the preset flips to Vite with `npm run build` → `dist`. `frontend/vercel.json`
+supplies the SPA rewrite and security headers.
+
+Then add an environment variable **`VITE_API_BASE_URL`** =
+`https://<your-backend-host>/api` and deploy. Vite inlines env vars at build
 time, so it must be set *before* the build, and changing it needs a rebuild.
 Without it the app calls `/api`, which only resolves behind the local dev proxy
-— the UI will say so explicitly rather than failing silently.
+— the UI says so explicitly rather than failing silently.
 
-Then set `CORS_ORIGINS` on the backend to the Vercel URL, or the browser will
-block every request.
+Finally set `CORS_ORIGINS` on the backend to the Vercel URL, or the browser
+blocks every request.
+
+If Deploy is still disabled after setting the Root Directory, check the plan:
+a **Hobby** team cannot always deploy repositories owned by a GitHub
+organisation such as `MeridianAI-AKS`. Hovering the disabled button shows the
+reason.
 
 ### Why the backend cannot go on Vercel
 
