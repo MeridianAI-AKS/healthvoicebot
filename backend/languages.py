@@ -1,7 +1,7 @@
 """Supported languages: STT locales, TTS voices, and script detection.
 
-Azure constraints that shape this list (verified against Microsoft Learn,
-2026-09):
+Azure constraints that shape this list (LID limits from Microsoft Learn, voices
+verified against the live Speech resource, 2026-09):
 
 * Continuous language identification accepts at most 10 candidate locales
   (4 for at-start). Accuracy falls as candidates are added, so the demo set is
@@ -10,9 +10,16 @@ Azure constraints that shape this list (verified against Microsoft Learn,
   constantly ("report kab aayega, is it 24 hours?"), so Hindi and English are
   treated as one bucket: hi-IN recognition tolerates embedded English, and the
   model is told to mirror whatever mix the customer used.
-* Text to speech covers only 8 Indian locales. Bengali, Punjabi, Odia, Urdu and
-  Assamese have speech to text but NO neural voice — those can be offered in
-  text chat but cannot be spoken back. `tts_voice` is None for them.
+* Voice availability is per region and must be read from the Speech resource
+  itself, not from the docs. The published language-support table omits bn-IN,
+  but westus2 serves bn-IN-TanishaaNeural, and it lists ta-IN-JarulNeural,
+  which this region does not have. Every voice below was verified against
+  /cognitiveservices/voices/list on the live resource (westus2, 772 voices).
+  Re-check when moving region: `python languages.py` prints a verification.
+
+* A locale with no voice at all keeps `tts_voice = None`. Do not synthesise its
+  text with another locale's voice — Azure returns 200 with an empty body
+  rather than an error, which is silence the caller cannot diagnose.
 """
 
 from __future__ import annotations
@@ -35,8 +42,8 @@ class Language:
 LANGUAGES: tuple[Language, ...] = (
     Language("hi-IN", "Hindi", "हिन्दी", "hi-IN-Kavya:MAI-Voice-2"),
     Language("en-IN", "Indian English", "English", "en-IN-Aarti:DragonHDLatestNeural"),
-    Language("bn-IN", "Bengali", "বাংলা", None),
-    Language("ta-IN", "Tamil", "தமிழ்", "ta-IN-JarulNeural"),
+    Language("bn-IN", "Bengali", "বাংলা", "bn-IN-TanishaaNeural"),
+    Language("ta-IN", "Tamil", "தமிழ்", "ta-IN-PallaviNeural"),
     Language("te-IN", "Telugu", "తెలుగు", "te-IN-ShrutiNeural"),
     Language("mr-IN", "Marathi", "मराठी", "mr-IN-AarohiNeural"),
 )
@@ -55,16 +62,18 @@ def get(locale: str | None) -> Language:
     return BY_LOCALE.get((locale or "").strip(), BY_LOCALE[DEFAULT_LOCALE])
 
 
-def tts_voice_for(locale: str | None) -> str:
-    """Voice for a locale, falling back to the Indian English voice.
+def tts_voice_for(locale: str | None) -> tuple[str, str]:
+    """(voice, xml_lang) for a locale.
 
-    Bengali has no Azure neural voice, so a Bengali reply is spoken by the
-    en-IN voice. It reads the Bengali text with an English phonology — poor,
-    but better than silence. Flagged in /api/languages as speakable=false so
-    the UI can hide the speaker control instead.
+    When a locale has no voice, fall back to the Indian English voice *and* to
+    its own locale for xml:lang. Pairing a voice with a foreign xml:lang makes
+    Azure return an empty audio body with a 200, which is indistinguishable
+    from success until someone notices nothing played.
     """
     language = get(locale)
-    return language.tts_voice or FALLBACK_TTS_VOICE
+    if language.tts_voice:
+        return language.tts_voice, language.locale
+    return FALLBACK_TTS_VOICE, "en-IN"
 
 
 def can_speak(locale: str | None) -> bool:
@@ -127,3 +136,41 @@ def catalogue() -> list[dict]:
         }
         for lang in LANGUAGES
     ]
+
+
+if __name__ == "__main__":
+    # Verify every configured voice exists in the current Speech region.
+    import sys
+
+    import requests
+
+    import config
+
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if not config.speech_configured():
+        raise SystemExit("Azure Speech is not configured.")
+
+    response = requests.get(
+        f"https://{config.AZURE_SPEECH_REGION}.tts.speech.microsoft.com"
+        "/cognitiveservices/voices/list",
+        headers={"Ocp-Apim-Subscription-Key": config.AZURE_SPEECH_KEY},
+        timeout=45,
+    )
+    response.raise_for_status()
+    available = {v["ShortName"] for v in response.json()}
+
+    print(f"Region {config.AZURE_SPEECH_REGION}: {len(available)} voices\n")
+    missing = False
+    for language in LANGUAGES:
+        if language.tts_voice is None:
+            print(f"  --   {language.locale}: no voice configured (text only)")
+        elif language.tts_voice in available:
+            print(f"  OK   {language.locale}: {language.tts_voice}")
+        else:
+            missing = True
+            alternatives = sorted(
+                v for v in available if v.startswith(f"{language.locale}-")
+            )
+            print(f"  MISS {language.locale}: {language.tts_voice} not in this region")
+            print(f"       available: {', '.join(alternatives) or 'none'}")
+    raise SystemExit(1 if missing else 0)

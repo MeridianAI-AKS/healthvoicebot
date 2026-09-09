@@ -160,8 +160,9 @@ def main() -> None:
     print("\n7. Language plumbing")
     check("6 demo languages", len(languages.LANGUAGES) == 6)
     check("LID candidates within Azure's limit of 10", len(languages.stt_candidates()) <= 10)
-    check("Bengali is flagged as having no voice", not languages.can_speak("bn-IN"))
-    check("Bengali falls back to a real voice", languages.tts_voice_for("bn-IN") == languages.FALLBACK_TTS_VOICE)
+    check("every demo language has a voice", all(languages.can_speak(l.locale) for l in languages.LANGUAGES))
+    check("voice and xml:lang agree",
+          all(languages.tts_voice_for(l.locale)[1] == l.locale for l in languages.LANGUAGES))
     check("every greeting is non-empty",
           all(chat.greeting(lang.locale) for lang in languages.LANGUAGES))
 

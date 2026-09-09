@@ -95,9 +95,15 @@ Azure constraints that shaped this (verified against Microsoft Learn):
 - LID **cannot switch language mid-sentence**. Code-mixed Hinglish resolves to
   whichever language dominates, so Hindi leads the candidate list and the model
   is told to mirror whatever mix the customer used rather than "correct" it.
-- **Bengali has speech-to-text but no Azure neural voice.** It is offered as
-  text-only; `/api/languages` marks it `speakable: false` and the UI hides the
-  listen control instead of reading Bengali with an English voice.
+- **Voice availability is per region and must be read from the resource, not
+  the docs.** The published language-support table omits `bn-IN`, yet westus2
+  serves `bn-IN-TanishaaNeural`; it lists `ta-IN-JarulNeural`, which westus2
+  does not have. All six demo languages have a verified voice.
+  `python languages.py` re-verifies the map against the live region — run it
+  after any region change.
+- Pairing a voice with a mismatched `xml:lang` makes Azure return **200 with an
+  empty audio body**, not an error. `tts_voice_for` returns the voice and its
+  own locale together so that cannot happen silently.
 
 ### Safety
 
@@ -157,8 +163,8 @@ re-crawling all 700 detail calls.
 ## Demo script
 
 1. **Price** — "What does a full body checkup cost?" → real catalogue answer.
-2. **Language switch** — ask the same in हिन्दी, then বাংলা. The reply language
-   follows the question; the Bengali turn shows the text-only badge.
+2. **Language switch** — ask the same in हिन्दी, then বাংলা, then தமிழ். The reply
+   language follows the question, and each one speaks in its own voice.
 3. **Symptom** — "I have hair loss, which test?" → thyroid, ferritin, iron, from
    the company's own mapping.
 4. **Operational** — "Check my booking, my number is 9800000002" → demo booking,
@@ -195,10 +201,24 @@ re-crawling all 700 detail calls.
 - Production build: 157 kB initial bundle, Speech SDK (381 kB) lazy-loaded on
   first mic use.
 
-**Not verified — no Azure credentials were available:** real model replies and
-their quality, tool calling against the live API, embeddings and hybrid ranking,
-TTS voices, and browser microphone capture with language identification. These
-are the first things to exercise once keys are in `backend/.env`.
+**Verified against live Azure** (gpt-4o-aiteam, westus2 Speech):
+
+- Real conversations in English, Hindi, Bengali, Tamil — correct prices, correct
+  language mirroring, tool calls chained (`check_pincode` → `get_available_slots`).
+- Booking lookup returning demo fixture data; symptom queries resolving through
+  the company's own mapping.
+- Safety: interpretation declined, emergency deflected in under a second.
+- Embedding index built (2,373 vectors, 73 MB, gitignored — regenerate with
+  `build_index.py`); retrieval mode `hybrid`.
+- Text to speech in all six languages, 6/6 producing audio.
+
+**Still not verified:** browser microphone capture with live language
+identification — it needs a real mic and a human speaking, so it has to be
+exercised by hand before the demo.
+
+**Known rough edge:** the model sometimes formats replies with markdown despite
+the prompt forbidding it. TTS strips it, but the chat bubble shows raw
+asterisks. Either render markdown in the UI or tighten the instruction.
 
 ## Facts to confirm with the client
 

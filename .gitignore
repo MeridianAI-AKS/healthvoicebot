@@ -5,3 +5,7 @@ __pycache__/
 venv/
 node_modules/
 dist/
+
+# Regenerable with `python build_index.py` — 73 MB of float vectors, and close
+# enough to GitHub's 100 MB file limit that it does not belong in the repo.
+backend/data/embeddings.json

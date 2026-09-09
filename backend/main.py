@@ -187,8 +187,8 @@ def tts(req: TTSRequest):
         raise HTTPException(400, "text is required")
 
     locale = languages.detect_locale(text, hint=req.locale)
-    voice = languages.tts_voice_for(locale)
-    ssml = build_ssml(text, voice=voice, locale=locale)
+    voice, xml_lang = languages.tts_voice_for(locale)
+    ssml = build_ssml(text, voice=voice, locale=xml_lang)
     if not ssml:
         raise HTTPException(400, "nothing speakable in that text")
 
