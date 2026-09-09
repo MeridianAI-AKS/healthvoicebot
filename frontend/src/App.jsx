@@ -5,6 +5,7 @@ import Composer from './components/Composer'
 import { useVoiceRecognition } from './hooks/useVoiceRecognition'
 import { useAudioPlayer } from './hooks/useAudioPlayer'
 import {
+  API_BASE,
   getHealth,
   getLanguages,
   startSession,
@@ -94,10 +95,16 @@ export default function App() {
         await begin(initial)
       } catch (err) {
         if (!cancelled) {
+          // The usual cause on a hosted deploy is an unset API base: the app is
+          // static, the backend lives elsewhere, and /api resolves to nothing.
+          const hint =
+            API_BASE === '/api' && !/localhost|127\.0\.0\.1/i.test(location.hostname)
+              ? ' Set VITE_API_BASE_URL to the backend URL and redeploy — this build is calling /api, which only works behind the local dev proxy.'
+              : ''
           addMessage({
             role: 'agent',
             kind: 'error',
-            content: `Cannot reach the backend: ${err.message}`,
+            content: `Cannot reach the backend at ${API_BASE}: ${err.message}.${hint}`,
           })
           setStatus('error')
         }

@@ -175,6 +175,56 @@ re-crawling all 700 detail calls.
 7. **Emergency** — "I am having chest pain" → immediate 112 deflection, no
    booking attempted, in the caller's language.
 
+## Deployment
+
+**The frontend deploys to Vercel. The backend does not.** Vercel hosts the
+static build; the FastAPI service needs a long-running host — Azure App Service
+is the natural fit here, since the model, speech and embeddings are all Azure.
+
+### Frontend on Vercel
+
+`vercel.json` at the repo root builds `frontend/` and serves `frontend/dist`, so
+importing the repo works without setting a Root Directory.
+
+One required setting: add an environment variable **`VITE_API_BASE_URL`** =
+`https://<your-backend-host>/api` and redeploy. Vite inlines env vars at build
+time, so it must be set *before* the build, and changing it needs a rebuild.
+Without it the app calls `/api`, which only resolves behind the local dev proxy
+— the UI will say so explicitly rather than failing silently.
+
+Then set `CORS_ORIGINS` on the backend to the Vercel URL, or the browser will
+block every request.
+
+### Why the backend cannot go on Vercel
+
+Four blockers, in order of how hard they are to remove:
+
+1. **Sessions are a module-level dict.** Serverless invocations do not share
+   memory, so a conversation would lose its history between turns — every
+   message would start over. Needs Redis or Azure Table Storage first.
+2. **Cold starts build the index at import.** 2,373 documents are tokenised and
+   a BM25 index constructed on first request.
+3. **The embedding index is 71 MB and gitignored**, so it is not in the deploy
+   at all. Retrieval would silently drop to keyword-only — which is exactly what
+   made Bengali queries fail before embeddings were added.
+4. **Turns can take 10–16 seconds** with tool calls. That exceeds Vercel's Hobby
+   function timeout, and NDJSON streaming from Python functions is limited.
+
+### Backend on Azure App Service
+
+```bash
+az webapp up --runtime "PYTHON:3.11" --sku B1 --name <app-name>
+az webapp config set --name <app-name> --startup-file   "python -m uvicorn main:app --host 0.0.0.0 --port 8000"
+```
+
+Set `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_KEY`, `AZURE_SPEECH_KEY`,
+`AZURE_SPEECH_REGION`, `AZURE_OPENAI_BASE`, `AZURE_EMBEDDING_DEPLOYMENT`,
+`CORS_ORIGINS` and `CLIENT_KEY` as App Settings — never in the repo.
+
+`build_index.py` must run on the host after deploy (or the index be fetched from
+Blob Storage), since the 71 MB vector file is not in git.
+
+
 ## Known limitations
 
 - **Sessions are in memory.** They die on restart and are not shared across App
