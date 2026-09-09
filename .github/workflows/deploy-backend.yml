@@ -1,0 +1,88 @@
+# Deploys backend/ to Azure App Service.
+#
+# Setup, once:
+#   1. Create a Linux Python 3.12 Web App in Azure.
+#   2. Repository variable  AZURE_WEBAPP_NAME  = the app name.
+#      (Settings > Secrets and variables > Actions > Variables)
+#   3. Repository secret    AZUREAPPSERVICE_PUBLISHPROFILE = the app's
+#      publish profile XML (Azure Portal > the Web App > Get publish profile).
+#   4. In the Web App > Configuration:
+#        Startup Command:
+#          python -m uvicorn main:app --host 0.0.0.0 --port 8000
+#        Application settings: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY,
+#          AZURE_SPEECH_KEY, AZURE_SPEECH_REGION, AZURE_OPENAI_BASE,
+#          AZURE_EMBEDDING_DEPLOYMENT, CORS_ORIGINS (your Vercel URL),
+#          CLIENT_KEY, and optionally BUILD_INDEX_ON_STARTUP=true.
+#
+# Azure credentials belong in App Service application settings, never in this
+# repository. The only GitHub secret needed here is the publish profile.
+#
+# Until AZURE_WEBAPP_NAME is set the deploy job skips, so this workflow is inert
+# rather than red.
+
+name: Deploy backend to Azure App Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run offline checks
+        working-directory: backend
+        run: |
+          source .venv/bin/activate
+          python test_agent.py
+
+      # Oryx installs dependencies on the platform, so the venv is excluded
+      # from the artifact to keep the payload small.
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-app
+          path: |
+            backend/
+            !backend/.venv/
+            !backend/__pycache__/
+            !backend/data/embeddings.json
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    # Skip cleanly until the target app has been created and named.
+    if: vars.AZURE_WEBAPP_NAME != ''
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-app
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}

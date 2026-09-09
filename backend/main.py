@@ -27,6 +27,21 @@ TTS_OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3"
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # A fresh deploy has no embedding index — it is too large for git. Build it
+    # once here when asked, before the first customer arrives.
+    if config.BUILD_INDEX_ON_STARTUP and config.embeddings_configured():
+        from build_index import OUT_PATH, build_index
+
+        if OUT_PATH.exists():
+            print("Embedding index already present; skipping build.")
+        else:
+            print("No embedding index found — building (this takes a few minutes)...")
+            try:
+                count = build_index()
+                print(f"Embedding index built: {count} vectors")
+            except Exception as exc:
+                print(f"Warning: index build failed, continuing on keyword search: {exc}")
+
     # Warm the index at startup so the first customer does not pay for it.
     try:
         retriever = get_retriever()

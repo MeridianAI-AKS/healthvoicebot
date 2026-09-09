@@ -43,6 +43,12 @@ CORS_ORIGINS: str = _get("CORS_ORIGINS")
 # the frontend must send it as X-Client-Key.
 CLIENT_KEY: str = _get("CLIENT_KEY")
 
+# Build the embedding index on first start when it is missing. The index is
+# 71 MB and not in git, so a fresh App Service deploy has none. App Service
+# /home is persistent, so this costs one embedding pass per deployment, not per
+# restart. Off by default so nobody is surprised by the API spend.
+BUILD_INDEX_ON_STARTUP: bool = _get("BUILD_INDEX_ON_STARTUP", "").lower() in {"1", "true", "yes"}
+
 MAX_TOOL_ROUNDS: int = int(_get("MAX_TOOL_ROUNDS", "4"))
 CHAT_MAX_TOKENS: int = int(_get("CHAT_MAX_TOKENS", "450"))
 CHAT_TIMEOUT_SECONDS: int = int(_get("CHAT_TIMEOUT_SECONDS", "45"))

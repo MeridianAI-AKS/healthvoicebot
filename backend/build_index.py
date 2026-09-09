@@ -21,16 +21,8 @@ OUT_PATH = Path(__file__).parent / "data" / "embeddings.json"
 BATCH_SIZE = 64
 
 
-def main() -> None:
-    if not config.embeddings_configured():
-        print(
-            "Embeddings not configured. Set AZURE_OPENAI_BASE, AZURE_OPENAI_KEY and\n"
-            "AZURE_EMBEDDING_DEPLOYMENT in backend/.env, or skip this step and let the\n"
-            "agent use keyword search.",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
-
+def build_index(out_path: Path = OUT_PATH) -> int:
+    """Embed the corpus and write the index. Returns vectors written."""
     documents = build_documents()
     print(f"Embedding {len(documents)} documents in batches of {BATCH_SIZE}...")
 
@@ -49,8 +41,8 @@ def main() -> None:
             vectors[document.doc_id] = vector
         print(f"  {min(start + BATCH_SIZE, len(documents))}/{len(documents)}")
 
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with OUT_PATH.open("w", encoding="utf-8") as f:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8") as f:
         json.dump(
             {
                 "model": config.AZURE_EMBEDDING_DEPLOYMENT,
@@ -59,7 +51,21 @@ def main() -> None:
             },
             f,
         )
-    print(f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size / 1024 / 1024:.1f} MB)")
+    return len(vectors)
+
+
+def main() -> None:
+    if not config.embeddings_configured():
+        print(
+            "Embeddings not configured. Set AZURE_OPENAI_BASE, AZURE_OPENAI_KEY and\n"
+            "AZURE_EMBEDDING_DEPLOYMENT in backend/.env, or skip this step and let the\n"
+            "agent use keyword search.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    count = build_index()
+    print(f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size / 1024 / 1024:.1f} MB, {count} vectors)")
 
 
 if __name__ == "__main__":
